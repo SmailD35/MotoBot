@@ -8,7 +8,6 @@ type Item struct {
 	Link        string    `json:"link"`
 	Description string    `json:"description"`
 	PubDate     time.Time `json:"pub_date"`
-	Category    string    `json:"category"`
 	Text        string    `json:"text"`
 	Signature   []uint64  `json:"signature"`
 }
@@ -19,16 +18,41 @@ type Aggregation struct {
 }
 
 const PutMapping = `
-	{
-	  "properties":{
+{"settings": {
+        "analysis": {
+            "filter": {
+                "delimiter": {
+                    "type": "word_delimiter",
+                    "preserve_original": "true"
+                },
+                "jmorphy2_russian": {
+                    "type": "jmorphy2_stemmer",
+                    "name": "ru"
+                }
+            },
+            "analyzer": {
+                "text_ru": {
+                    "tokenizer": "standard",
+                    "filter": [
+                        "lowercase",
+                        "delimiter",
+                        "jmorphy2_russian"
+                    ]
+                }
+            }
+        }
+    },
+    "mappings": {
+		"dynamic": "strict",
+		"properties":{
 			"title":{
 				"type": "text",
-				"analyzer":"russian",
+				"analyzer":"text_ru",
 				"fields": {
-          			"keyword": { 
-            			"type": "keyword"
+					"keyword": { 
+						"type": "keyword"
 					}
-        		}
+				}
 			},
 			"author": {
 				"type":"keyword"
@@ -39,20 +63,24 @@ const PutMapping = `
 			"description":{
 				"type":"text",
 				"fields": {
-          			"keyword": { 
-            			"type": "keyword"
+					"keyword": { 
+						"type": "keyword"
 					}
-        	},
-				"analyzer":"russian"
+			},
+				"analyzer":"text_ru"
 			},
 			"pub_date":{
 				"type":"date"
 			},
 			"text":{
 				"type":"text",
-				"analyzer":"russian"
+				"analyzer":"text_ru"
+			},
+			"signature":{
+				"type":"keyword"
 			}
-	 }
+		}
+  	}
 }`
 
 func addKeyWord(field string) string {

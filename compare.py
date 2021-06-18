@@ -6,7 +6,7 @@ COUNT = 2
 FIELD = 'signature'
 
 
-def get_texts_from_es():
+def get_signature_from_es():
     es = Elasticsearch()
 
     res = es.search(index=INDEX_NAME, body={'size': COUNT, 'query': {'match_all': {}}})
@@ -17,6 +17,6 @@ def get_texts_from_es():
     return first_text_from_es, second_text_from_es
 
 
-first_signature, second_signature = get_texts_from_es()
+first_signature, second_signature = get_signature_from_es()
 j = compare(first_signature, second_signature)
 print(j)

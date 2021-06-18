@@ -4,7 +4,6 @@ import (
 	"context"
 	"encoding/json"
 	"errors"
-
 	"github.com/olivere/elastic/v7"
 	"os"
 
@@ -49,29 +48,12 @@ func NewESClient() (ESClient, error) {
 		return es, nil
 	}
 
-	_, err = es.client.CreateIndex(indexName).Do(context.Background())
-	if err != nil {
-		return ESClient{}, err
-	}
-
-	err = es.createMapping()
+	_, err = es.client.CreateIndex(indexName).BodyString(PutMapping).Do(context.Background())
 	if err != nil {
 		return ESClient{}, err
 	}
 
 	return es, nil
-}
-
-func (es *ESClient) createMapping() error {
-	_, err := es.client.PutMapping().
-		Index(indexName).
-		BodyString(PutMapping).
-		Do(context.Background())
-	if err != nil {
-		return err
-	}
-
-	return nil
 }
 
 func (es *ESClient) PutItems(items []*Item) error {

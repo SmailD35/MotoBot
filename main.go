@@ -42,21 +42,21 @@ func main() {
 		return
 	}
 
-	existsItems, err := db.GetItems(count)
+	existingItems, err := db.GetItems(count)
 	if err != nil {
 		fmt.Println(err)
 		return
 	}
 
-	existsItemsMap := map[string]*pkg.Item{}
-	for _, item := range existsItems {
-		existsItemsMap[item.Link] = item
+	existingItemsMap := map[string]*pkg.Item{}
+	for _, item := range existingItems {
+		existingItemsMap[item.Link] = item
 	}
 
 	var newItemsForPars []*pkg.Item
 
 	for _, newItem := range newItems {
-		if _, ok := existsItemsMap[newItem.Link]; !ok {
+		if _, ok := existingItemsMap[newItem.Link]; !ok {
 			newItemsForPars = append(newItemsForPars, newItem)
 		}
 	}
@@ -75,8 +75,8 @@ func main() {
 			wg.Done()
 			return
 		}(item, wg)
-		wg.Wait()
 	}
+	wg.Wait()
 
 	for _, item := range newItemsForPars {
 		signature, err := client.GetSignature(context.Background(), &proto.ItemText{Text: item.Text})

@@ -22,18 +22,6 @@ def shingle(item: moto_pb2.ItemText):
     return shingle_set
 
 
-def compare_with_minhash(first_set, second_set):
-    first_minhash, second_minhash = MinHash(), MinHash()
-
-    for i in first_set:
-        first_minhash.update(i.encode('utf8'))
-
-    for i in second_set:
-        second_minhash.update(i.encode('utf8'))
-
-    return first_minhash.jaccard(second_minhash)
-
-
 def compare(first_signature_input, second_signature_input):
     first_minhash = MinHash(hashvalues=first_signature_input)
     second_minhash = MinHash(hashvalues=second_signature_input)
