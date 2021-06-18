@@ -1,14 +1,15 @@
 import string
 from datasketch import MinHash
-from elasticsearch import Elasticsearch
+import asyncio
+import moto_pb2
+import moto_pb2_grpc
+import grpc
 
 K_SHINGLE = 3
-INDEX_NAME = 'items'
-COUNT = 2
-FIELD = 'text'
 
 
-def shingle(text):
+def shingle(item: moto_pb2.ItemText):
+    text = item.Text
     text = text.translate(str.maketrans('', '', string.punctuation))
 
     text_for_shingle = text.split(' ')
@@ -33,24 +34,31 @@ def compare_with_minhash(first_set, second_set):
     return first_minhash.jaccard(second_minhash)
 
 
-def compare(first_text_input, second_text_input):
-    first_set = shingle(first_text_input)
-    second_set = shingle(second_text_input)
+def compare(first_signature_input, second_signature_input):
+    first_minhash = MinHash(hashvalues=first_signature_input)
+    second_minhash = MinHash(hashvalues=second_signature_input)
 
-    return compare_with_minhash(first_set, second_set)
-
-
-def get_texts_from_es():
-    es = Elasticsearch()
-
-    res = es.search(index=INDEX_NAME, body={'size': COUNT, 'query': {'match_all': {}}})
-
-    first_text_from_es = res['hits']['hits'][0]['_source'][FIELD]
-    second_text_from_es = res['hits']['hits'][1]['_source'][FIELD]
-
-    return first_text_from_es, second_text_from_es
+    return first_minhash.jaccard(second_minhash)
 
 
-first_text, second_text = get_texts_from_es()
-j = compare(first_text, second_text)
-print(j)
+class ItemServicer(moto_pb2_grpc.ItemServiceServicer):
+    def GetSignature(self, request, context):
+        shingle_set = shingle(request)
+        mh = MinHash()
+        for el in shingle_set:
+            mh.update(el.encode('utf8'))
+        s = mh.hashvalues
+        return moto_pb2.ItemSignature(Signature=s)
+
+
+async def serve() -> None:
+    server = grpc.aio.server()
+    moto_pb2_grpc.add_ItemServiceServicer_to_server(
+        ItemServicer(), server)
+    server.add_insecure_port('[::]:50051')
+    await server.start()
+    await server.wait_for_termination()
+
+
+if __name__ == '__main__':
+    asyncio.get_event_loop().run_until_complete(serve())

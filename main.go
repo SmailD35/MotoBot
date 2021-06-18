@@ -1,12 +1,18 @@
 package main
 
 import (
+	"context"
 	"fmt"
 	"github.com/SmailD35/MotoBot/pkg"
+	"github.com/SmailD35/MotoBot/proto"
+	"google.golang.org/grpc"
+	"log"
+	"sync"
 )
 
 const count = 30
 const searchWord = "людей"
+const grpcAddr = "[::]:50051"
 
 var url = "https://lenta.ru/rss/articles/russia"
 
@@ -16,6 +22,19 @@ func main() {
 		fmt.Println(err)
 		return
 	}
+
+	grpcConn, err := grpc.Dial(
+		grpcAddr,
+		grpc.WithInsecure(),
+	)
+	if err != nil {
+		log.Fatalf("error connecting to grpc")
+	}
+	defer grpcConn.Close()
+
+	fmt.Println("moto")
+
+	client := proto.NewItemServiceClient(grpcConn)
 
 	newItems, err := pkg.XMLParser(url)
 	if err != nil {
@@ -42,12 +61,30 @@ func main() {
 		}
 	}
 
+	wg := &sync.WaitGroup{}
 	for _, item := range newItemsForPars {
-		text, err := pkg.ItemPares(item.Link)
+		wg.Add(1)
+		go func(i *pkg.Item, wg *sync.WaitGroup) {
+			text, err := pkg.ItemPares(i.Link)
+			if err != nil {
+				fmt.Println(err)
+				wg.Done()
+				return
+			}
+			i.Text = text
+			wg.Done()
+			return
+		}(item, wg)
+		wg.Wait()
+	}
+
+	for _, item := range newItemsForPars {
+		signature, err := client.GetSignature(context.Background(), &proto.ItemText{Text: item.Text})
 		if err != nil {
-			continue
+			fmt.Println(err)
+			return
 		}
-		item.Text = text
+		item.Signature = signature.Signature
 	}
 
 	err = db.PutItems(newItemsForPars)
