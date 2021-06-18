@@ -50,7 +50,6 @@ func XMLParser(url string) ([]*Item, error) {
 			Link:        item.Link,
 			Description: item.Description,
 			PubDate:     date,
-			//Category:    item.Category,
 		}
 		items = append(items, i)
 	}

@@ -10,7 +10,7 @@ const searchWord = "людей"
 
 var url = "https://lenta.ru/rss/articles/russia"
 
-func main()  {
+func main() {
 	db, err := pkg.NewESClient()
 	if err != nil {
 		fmt.Println(err)
